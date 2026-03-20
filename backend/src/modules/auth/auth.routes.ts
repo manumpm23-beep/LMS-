@@ -10,7 +10,7 @@ router.post('/refresh', refresh);
 router.post('/logout', logout);
 
 // Verify current user protected route
-router.get('/me', authMiddleware, (req, res) => {
+router.get('/me', authMiddleware, (req: any, res: any) => {
     const { password_hash, ...userParams } = req.user;
     res.json({ user: userParams });
 });
