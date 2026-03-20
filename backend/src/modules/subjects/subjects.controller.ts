@@ -4,65 +4,94 @@ import { buildSubjectTree } from '../../utils/ordering';
 
 export const seedDatabase = async (req: Request, res: Response) => {
     try {
-        const count = await prisma.subject.count();
-        if (count > 0) return res.status(400).json({ message: 'Database is already seeded with subjects!' });
-
-        await prisma.subject.create({
-            data: {
-                title: 'Advanced React Architecture',
-                slug: 'advanced-react',
-                description: 'Master the core mechanics of scalable React applications, Zustand state management, and strict TypeScript integration.',
-                isPublished: true,
-                sections: {
-                    create: [
-                        {
-                            title: 'State Management Basics',
-                            orderIndex: 0,
-                            videos: {
-                                create: [
-                                    { title: 'Why Zustand?', youtubeUrl: 'KCrXgy8qtjM', orderIndex: 0, description: 'An introduction to lightweight global states.' },
-                                    { title: 'Building your first Store', youtubeUrl: 'KCrXgy8qtjM', orderIndex: 1, description: 'Creating and binding states natively.' },
-                                ]
-                            }
-                        },
-                        {
-                            title: 'Performance & Architecture',
-                            orderIndex: 1,
-                            videos: {
-                                create: [
-                                    { title: 'Preventing Re-Renders', youtubeUrl: 'KCrXgy8qtjM', orderIndex: 0, description: 'Using strict selectors defensively.' }
-                                ]
-                            }
-                        }
-                    ]
-                }
+        const inputSubjects = [
+            {
+                title: "Python Programming",
+                slug: "python-programming",
+                desc: "Python is one of the most beginner-friendly and powerful programming languages in the world. In this course, you'll start from absolute zero — learning variables, data types, type casting, loops, functions, and object-oriented programming. By the end, you'll be able to write real scripts, automate tasks, and build the foundation needed for backend development, data science, or AI."
+            },
+            {
+                title: "Frontend Development",
+                slug: "frontend-development",
+                desc: "Frontend development is all about building what users see and interact with on the web. This course covers the full trio — HTML for structure, CSS for styling, and JavaScript for interactivity. You'll learn how to build responsive layouts, style components beautifully, handle DOM events, and create dynamic user interfaces that work across all devices and screen sizes."
+            },
+            {
+                title: "SQL & Databases",
+                slug: "sql-databases",
+                desc: "Databases are the backbone of every application, and SQL is the language used to talk to them. This course takes you from basic SELECT queries all the way to complex JOINs, subqueries, indexes, and transactions. You'll learn how to design normalized schemas, write efficient queries, and manage relational data using MySQL — one of the most widely used databases in the industry."
+            },
+            {
+                title: "React.js",
+                slug: "react-js",
+                desc: "React is the most popular JavaScript library for building modern, component-based user interfaces. This course covers everything from JSX and props to state management, hooks like useState and useEffect, and connecting to REST APIs. You'll build real projects that mirror what professional frontend developers ship every day at top tech companies around the world."
+            },
+            {
+                title: "Node.js & Express",
+                slug: "nodejs-express",
+                desc: "Node.js brings JavaScript to the server side, and Express makes building REST APIs fast and clean. In this course you'll learn how to create API routes, handle middleware, connect to databases, manage authentication with JWT, and structure a production-ready backend. This is the exact stack powering thousands of real-world applications running at scale today."
+            },
+            {
+                title: "CSS & Tailwind",
+                slug: "css-tailwind",
+                desc: "Great UI starts with great CSS. This course covers core CSS concepts — the box model, flexbox, grid, animations, and responsive design — before diving into Tailwind CSS, the utility-first framework that lets you build stunning interfaces without ever leaving your HTML. You'll go from basic styling to professional, pixel-perfect designs that look great on any screen size."
+            },
+            {
+                title: "TypeScript",
+                slug: "typescript",
+                desc: "TypeScript is JavaScript with superpowers — it adds static types that catch bugs before your code even runs. This course covers type annotations, interfaces, generics, enums, and how to integrate TypeScript into both frontend and backend projects. Learning TypeScript will make you a significantly more confident and productive developer, especially on larger codebases and team projects."
+            },
+            {
+                title: "Data Structures & Algorithms",
+                slug: "dsa",
+                desc: "Data Structures and Algorithms are the foundation of computer science and the key to cracking technical interviews. This course covers arrays, linked lists, stacks, queues, trees, graphs, sorting algorithms, and dynamic programming. Each concept is explained visually and practically, with real coding problems so you build both the intuition and the problem-solving skills that top companies test for."
+            },
+            {
+                title: "Next.js",
+                slug: "next-js",
+                desc: "Next.js is the go-to framework for building full-stack React applications with features like server-side rendering, static generation, the App Router, and API routes built in. This course walks you through building production-grade web apps — handling routing, data fetching strategies, authentication, and deployment to Vercel. It's the framework behind some of the fastest and most scalable websites on the internet."
+            },
+            {
+                title: "Git & GitHub",
+                slug: "git-github",
+                desc: "Every professional developer uses Git daily — it's the industry-standard tool for version control and collaboration. This course covers everything from your first commit to branching strategies, resolving merge conflicts, pull requests, and working in team workflows on GitHub. Whether you're building solo projects or contributing to open source, mastering Git is a non-negotiable skill in your developer toolkit."
             }
-        });
+        ];
 
-        await prisma.subject.create({
-            data: {
-                title: 'UI/UX Design Mastery',
-                slug: 'ui-ux-design',
-                description: 'Learn the exact spatial logic and color theories necessary to build stunning, premium visual interfaces from scratch.',
-                isPublished: true,
-                sections: {
-                    create: [
-                        {
-                            title: 'The Fundamentals',
-                            orderIndex: 0,
-                            videos: {
-                                create: [
-                                    { title: 'Color Theory', youtubeUrl: 'M7lc1UVf-VE', orderIndex: 0, description: 'Understanding global gradient bounds.' },
-                                    { title: 'Spatial Geometry', youtubeUrl: 'M7lc1UVf-VE', orderIndex: 1 }
-                                ]
-                            }
+        for (const sub of inputSubjects) {
+            const exists = await prisma.subject.findUnique({ where: { slug: sub.slug } });
+
+            if (!exists) {
+                await prisma.subject.create({
+                    data: {
+                        title: sub.title,
+                        slug: sub.slug,
+                        description: sub.desc,
+                        isPublished: true,
+                        sections: {
+                            create: [
+                                {
+                                    title: "Introduction",
+                                    orderIndex: 0,
+                                    videos: {
+                                        create: [
+                                            {
+                                                title: `Welcome to ${sub.title}`,
+                                                youtubeUrl: 'M7lc1UVf-VE',
+                                                orderIndex: 0,
+                                                description: `An introduction to the core concepts of ${sub.title}.`,
+                                                durationSeconds: 300
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
                         }
-                    ]
-                }
+                    }
+                });
             }
-        });
+        }
 
-        res.json({ message: 'Successfully seeded the database with premium test courses!' });
+        res.json({ message: 'Successfully seeded the database with all requested explicit courses!' });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
     }
