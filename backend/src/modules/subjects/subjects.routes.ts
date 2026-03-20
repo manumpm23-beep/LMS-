@@ -1,12 +1,14 @@
 import { Router } from 'express';
-import { getPublishedSubjects, getSubjectDetails, getSubjectTree, getFirstVideo, seedDatabase } from './subjects.controller';
+import { getSubjects, getSubjectById, getSubjectTree, seedDatabase } from './subjects.controller';
+import { getFirstVideoOfSubject } from '../videos/videos.controller';
 import { authMiddleware } from '../../middleware/authMiddleware';
 
 const router = Router();
+
 router.get('/setup/seed', seedDatabase);
-router.get('/', getPublishedSubjects);
-router.get('/:subjectId', getSubjectDetails);
+router.get('/', getSubjects);
+router.get('/:subjectId', getSubjectById);
 router.get('/:subjectId/tree', authMiddleware, getSubjectTree);
-router.get('/:subjectId/first-video', authMiddleware, getFirstVideo);
+router.get('/:subjectId/first-video', authMiddleware, getFirstVideoOfSubject);
 
 export const subjectRoutes = router;
