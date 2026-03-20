@@ -2,6 +2,72 @@ import { Request, Response } from 'express';
 import { prisma } from '../../config/db';
 import { buildSubjectTree } from '../../utils/ordering';
 
+export const seedDatabase = async (req: Request, res: Response) => {
+    try {
+        const count = await prisma.subject.count();
+        if (count > 0) return res.status(400).json({ message: 'Database is already seeded with subjects!' });
+
+        await prisma.subject.create({
+            data: {
+                title: 'Advanced React Architecture',
+                slug: 'advanced-react',
+                description: 'Master the core mechanics of scalable React applications, Zustand state management, and strict TypeScript integration.',
+                isPublished: true,
+                sections: {
+                    create: [
+                        {
+                            title: 'State Management Basics',
+                            orderIndex: 0,
+                            videos: {
+                                create: [
+                                    { title: 'Why Zustand?', youtubeUrl: 'KCrXgy8qtjM', orderIndex: 0, description: 'An introduction to lightweight global states.' },
+                                    { title: 'Building your first Store', youtubeUrl: 'KCrXgy8qtjM', orderIndex: 1, description: 'Creating and binding states natively.' },
+                                ]
+                            }
+                        },
+                        {
+                            title: 'Performance & Architecture',
+                            orderIndex: 1,
+                            videos: {
+                                create: [
+                                    { title: 'Preventing Re-Renders', youtubeUrl: 'KCrXgy8qtjM', orderIndex: 0, description: 'Using strict selectors defensively.' }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        });
+
+        await prisma.subject.create({
+            data: {
+                title: 'UI/UX Design Mastery',
+                slug: 'ui-ux-design',
+                description: 'Learn the exact spatial logic and color theories necessary to build stunning, premium visual interfaces from scratch.',
+                isPublished: true,
+                sections: {
+                    create: [
+                        {
+                            title: 'The Fundamentals',
+                            orderIndex: 0,
+                            videos: {
+                                create: [
+                                    { title: 'Color Theory', youtubeUrl: 'M7lc1UVf-VE', orderIndex: 0, description: 'Understanding global gradient bounds.' },
+                                    { title: 'Spatial Geometry', youtubeUrl: 'M7lc1UVf-VE', orderIndex: 1 }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        });
+
+        res.json({ message: 'Successfully seeded the database with premium test courses!' });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+};
+
 export const getSubjects = async (req: Request, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1;
