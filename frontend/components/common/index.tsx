@@ -4,3 +4,5 @@ export const Button = ({ children, onClick }: { children: React.ReactNode, onCli
     {children}
   </button>
 );
+
+export * from './StarRating';
