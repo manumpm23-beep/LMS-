@@ -27,6 +27,7 @@ function timeAgo(dateInput: string | Date) {
 export default function SubjectPage({ params }: { params: { subjectId: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [subject, setSubject] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [myReview, setMyReview] = useState<any>(null);
@@ -43,13 +44,18 @@ export default function SubjectPage({ params }: { params: { subjectId: string } 
 
     async function fetchData() {
       try {
-        const [dashRes, revRes, myRevRes] = await Promise.all([
+        const [dashRes, subRes, revRes, myRevRes] = await Promise.all([
           apiClient.get('/api/dashboard').catch(() => null),
+          apiClient.get(`/api/subjects/${params.subjectId}`).catch(() => null),
           apiClient.get(`/api/subjects/${params.subjectId}/reviews`).catch(() => null),
           apiClient.get(`/api/subjects/${params.subjectId}/my-review`).catch(() => null),
         ]);
 
         if (!active) return;
+
+        if (subRes && subRes.data) {
+           setSubject(subRes.data);
+        }
 
         if (dashRes && dashRes.data) {
            const enrolled = dashRes.data.enrolledCourses?.some((c: any) => c.subjectId === params.subjectId);
@@ -165,7 +171,23 @@ export default function SubjectPage({ params }: { params: { subjectId: string } 
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-12 pb-32">
-       <h1 className="text-3xl font-bold text-gray-800">Ratings & Reviews</h1>
+       {/* Hero Section */}
+       <div className="border-b border-gray-200 pb-8">
+         <h1 className="text-4xl font-extrabold text-gray-900 mb-4">{subject?.title || 'Course Overview'}</h1>
+         <div className="flex items-center gap-4">
+           {total > 0 ? (
+             <>
+               <span className="text-3xl font-bold text-gray-900">{Number(summary?.averageRating || 0).toFixed(1)}</span>
+               <StarRating rating={summary?.averageRating || 0} size="md" interactive={false} />
+               <span className="text-lg text-gray-500 font-medium">({total} reviews)</span>
+             </>
+           ) : (
+             <span className="text-lg text-gray-500 font-medium">No reviews yet</span>
+           )}
+         </div>
+       </div>
+
+       <h2 className="text-3xl font-bold text-gray-800">Ratings & Reviews</h2>
        
        <div className="flex flex-col md:flex-row gap-8 items-start bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
           <div className="flex flex-col items-center justify-center space-y-2 w-full md:w-1/3 py-4">

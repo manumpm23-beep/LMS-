@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/lib/apiClient';
 import { ArrowRight, BookOpen, UserCircle, Rocket, Sparkles, PlayCircle, Search, X } from 'lucide-react';
 import Header from '@/components/Layout/Header';
+import { StarRating } from '@/components/common/StarRating';
 
 function HomePageContent() {
   const router = useRouter();
@@ -266,8 +267,19 @@ function HomePageContent() {
                     </div>
                   </div>
                   <div className="p-8 flex flex-col flex-1 relative z-10">
-                    <div className="flex justify-between items-start mb-3">
-                       <h2 className="text-2xl font-extrabold text-white group-hover:text-indigo-400 transition-colors line-clamp-1">{sub.title}</h2>
+                    <div className="flex flex-col items-start mb-3">
+                       <h2 className="text-2xl font-extrabold text-white group-hover:text-indigo-400 transition-colors line-clamp-1 mb-1">{sub.title}</h2>
+                       <div className="flex items-center gap-2">
+                         {sub.totalReviews > 0 ? (
+                           <>
+                             <span className="text-white font-bold">{Number(sub.averageRating || 0).toFixed(1)}</span>
+                             <StarRating rating={sub.averageRating || 0} size="sm" interactive={false} />
+                             <span className="text-gray-400 text-sm font-medium">({sub.totalReviews} reviews)</span>
+                           </>
+                         ) : (
+                           <span className="text-gray-400 text-sm font-medium">No reviews yet</span>
+                         )}
+                       </div>
                     </div>
                     {sub.category && (
                       <span className="inline-block px-3 py-1 bg-white/10 text-slate-300 text-xs font-bold rounded-lg mb-4 w-fit border border-white/5">
