@@ -9,6 +9,46 @@ async function main() {
 
   const inputSubjects = [
     {
+      title: "UI/UX Design Mastery",
+      slug: "uiux-design-mastery",
+      thumbnailUrl: "https://img.youtube.com/vi/c9Wg6Cb_YlU/maxresdefault.jpg",
+      desc: "Learn the exact spatial logic and color theories necessary to build stunning, premium visual interfaces from scratch.",
+      instructorName: "Gary Simon",
+      instructorPhoto: "https://api.dicebear.com/7.x/avataaars/svg?seed=GarySimon",
+      category: "Design",
+      whatYouWillLearn: JSON.stringify([
+        "Understand core UI and UX design principles",
+        "Design beautiful interfaces using Figma",
+        "Create wireframes, prototypes and design systems",
+        "Build a strong design portfolio from scratch"
+      ]),
+      sectionTitle: "Introduction to UI/UX",
+      videoTitle: "UI/UX Design Full Course",
+      videoDesc: "Complete UI/UX design course covering Figma, wireframing and design principles",
+      youtubeUrl: "https://www.youtube.com/watch?v=c9Wg6Cb_YlU",
+      durationSeconds: 14400
+    },
+    {
+      title: "Advanced React",
+      slug: "advanced-react",
+      thumbnailUrl: "https://img.youtube.com/vi/x4rFhThSX04/maxresdefault.jpg",
+      desc: "Master the core mechanics of scalable React applications, Zustand state management, and strict TypeScript integration.",
+      instructorName: "Bob Ziroll",
+      instructorPhoto: "https://api.dicebear.com/7.x/avataaars/svg?seed=BobZiroll",
+      category: "Frontend",
+      whatYouWillLearn: JSON.stringify([
+        "Master React hooks including useState and useEffect",
+        "Manage complex state using Zustand and Context API",
+        "Integrate TypeScript strictly into React projects",
+        "Build and deploy scalable real-world React applications"
+      ]),
+      sectionTitle: "Introduction",
+      videoTitle: "Learn React JS - Full Course 2024",
+      videoDesc: "Complete React course with 170+ challenges and 6 real-world projects",
+      youtubeUrl: "https://www.youtube.com/watch?v=x4rFhThSX04",
+      durationSeconds: 54000
+    },
+    {
       title: "Python Programming",
       slug: "python-programming",
       thumbnailUrl: "https://img.youtube.com/vi/_uQrJ0TkZlc/maxresdefault.jpg",
@@ -127,6 +167,10 @@ async function main() {
           title: sub.title,
           description: sub.desc,
           thumbnailUrl: sub.thumbnailUrl,
+          instructorName: sub.instructorName || null,
+          instructorPhoto: sub.instructorPhoto || null,
+          category: sub.category || null,
+          whatYouWillLearn: sub.whatYouWillLearn || null,
           isPublished: true
        },
        create: {
@@ -134,6 +178,10 @@ async function main() {
           slug: sub.slug,
           description: sub.desc,
           thumbnailUrl: sub.thumbnailUrl,
+          instructorName: sub.instructorName || null,
+          instructorPhoto: sub.instructorPhoto || null,
+          category: sub.category || null,
+          whatYouWillLearn: sub.whatYouWillLearn || null,
           isPublished: true
        }
      });
