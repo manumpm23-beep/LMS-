@@ -4,10 +4,37 @@ import { useSidebarStore } from '@/store/sidebarStore';
 import { CheckCircle2, Circle, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { apiClient } from '@/lib/apiClient';
 
 export default function SubjectSidebar({ subjectId }: { subjectId: string }) {
     const { tree, loading } = useSidebarStore();
     const pathname = usePathname();
+    const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+
+    useEffect(() => {
+        if (tree && !loading) {
+            const fetchCounts = async () => {
+                const fetchedCounts: Record<string, number> = {};
+                const promises = [];
+                for (const section of tree.sections) {
+                    for (const video of section.videos) {
+                        promises.push(
+                            apiClient.get(`/api/videos/${video.id}/comments?page=1&pageSize=1`)
+                                .then(res => {
+                                    if (res.data.totalCount && res.data.totalCount > 0) {
+                                        fetchedCounts[video.id] = res.data.totalCount;
+                                    }
+                                }).catch(() => {})
+                        );
+                    }
+                }
+                await Promise.allSettled(promises);
+                setCommentCounts(fetchedCounts);
+            };
+            fetchCounts();
+        }
+    }, [tree, loading]);
 
     if (loading || !tree) {
         return (
@@ -54,13 +81,20 @@ export default function SubjectSidebar({ subjectId }: { subjectId: string }) {
                                     <li key={video.id}>
                                         <Link
                                             href={`/subjects/${subjectId}/video/${video.id}`}
-                                            className={`flex items-start p-2 rounded-lg transition-colors duration-200 ${isActive
+                                            className={`flex items-center p-2 rounded-lg transition-colors duration-200 ${isActive
                                                     ? 'bg-primary/10 text-primary'
                                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                                 }`}
                                         >
-                                            <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${video.isCompleted ? 'text-green-500' : isActive ? 'text-primary' : 'text-gray-400'}`} />
-                                            <span className="ml-3 text-sm font-medium">{video.title}</span>
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${video.isCompleted ? 'text-green-500' : isActive ? 'text-primary' : 'text-gray-400'}`} />
+                                            <div className="flex-1 flex items-center justify-between ml-3 min-w-0">
+                                                <span className="text-sm font-medium truncate pr-2">{video.title}</span>
+                                                {commentCounts[video.id] ? (
+                                                     <span className="text-[10px] font-bold text-gray-500 bg-black/5 px-2 py-0.5 rounded-full flex items-center shrink-0">
+                                                        💬 {commentCounts[video.id]}
+                                                     </span>
+                                                ) : null}
+                                            </div>
                                         </Link>
                                     </li>
                                 );
