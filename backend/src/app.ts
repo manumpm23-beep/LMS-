@@ -8,6 +8,7 @@ import { subjectRoutes } from './modules/subjects/subjects.routes';
 import { videoRoutes } from './modules/videos/videos.routes';
 import { progressRoutes } from './modules/progress/progress.routes';
 import { healthRoutes } from './modules/health/health.routes';
+import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/subjects', subjectRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.use(errorHandler);
 
