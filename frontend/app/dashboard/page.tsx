@@ -5,11 +5,23 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/lib/apiClient';
-import { BookOpen, CheckCircle, Clock, Flame, PlayCircle, History, User } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { BookOpen, CheckCircle, Clock, Flame, PlayCircle, History, User, ArrowRight } from 'lucide-react';
+
+function timeAgo(dateParam: string | Date) {
+  const date = typeof dateParam === 'string' ? new Date(dateParam) : dateParam;
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffInSeconds < 60) return `Just now`;
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays} days ago`;
+}
 
 export default function DashboardPage() {
-  const { isAuthenticated, isHydrated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const router = useRouter();
 
   const [data, setData] = useState<any>(null);
@@ -17,10 +29,10 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) {
+    if (!isAuthenticated && !loading) {
       router.push('/auth/login');
     }
-  }, [isHydrated, isAuthenticated, router]);
+  }, [isAuthenticated, loading, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -36,7 +48,7 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated]);
 
-  if (!isHydrated || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -296,7 +308,7 @@ export default function DashboardPage() {
                          <p className="text-xs font-semibold text-gray-400 mt-1 line-clamp-1">{video.subjectTitle}</p>
                          <div className="flex items-center gap-2 mt-2">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                               {formatDistanceToNow(new Date(video.watchedAt), { addSuffix: true })}
+                               {timeAgo(video.watchedAt)}
                             </span>
                             {video.isCompleted && <CheckCircle className="w-3 h-3 text-emerald-500" />}
                          </div>
