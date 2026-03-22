@@ -7,7 +7,6 @@ import {
     MessageSquare, Pin, ThumbsUp, MessageCircle, 
     Pencil, Trash2, MoreVertical, X, Check, Loader2, Send
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 
 function timeAgo(dateParam: string | Date) {
     if (!dateParam) return 'Just now';
