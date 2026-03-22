@@ -11,10 +11,10 @@ export class DashboardService {
     const progressRecords = await dashboardRepo.getVideoProgress(userId);
 
     const completedDates = progressRecords
-        .filter(p => p.isCompleted && p.completedAt)
-        .map(p => new Date(p.completedAt as Date).toISOString().split('T')[0]);
+        .filter((p: any) => p.isCompleted && p.completedAt)
+        .map((p: any) => new Date(p.completedAt).toISOString().split('T')[0]);
 
-    const uniqueCompletedDates = Array.from(new Set(completedDates)).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    const uniqueCompletedDates = Array.from(new Set(completedDates)).sort((a: any, b: any) => new Date(b).getTime() - new Date(a).getTime());
 
     let currentStreak = 0;
     let longestStreak = 0;
@@ -26,7 +26,7 @@ export class DashboardService {
     let isCurrentStreakValid = true;
 
     for (let i = 0; i < uniqueCompletedDates.length; i++) {
-        const currentDate = new Date(uniqueCompletedDates[i]);
+        const currentDate = new Date(uniqueCompletedDates[i] as string);
         
         if (i === 0) {
             tempStreak = 1;
@@ -34,7 +34,7 @@ export class DashboardService {
                 isCurrentStreakValid = false;
             }
         } else {
-            const previousLoopDate = new Date(uniqueCompletedDates[i - 1]);
+            const previousLoopDate = new Date(uniqueCompletedDates[i - 1] as string);
             const diffTime = Math.abs(previousLoopDate.getTime() - currentDate.getTime());
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
             
@@ -55,10 +55,10 @@ export class DashboardService {
         currentStreak = tempStreak;
     }
 
-    const completedProgress = progressRecords.filter(p => p.isCompleted);
+    const completedProgress = progressRecords.filter((p: any) => p.isCompleted);
     const totalLessonsCompleted = completedProgress.length;
     let totalSecondsWatched = 0;
-    completedProgress.forEach(p => {
+    completedProgress.forEach((p: any) => {
         totalSecondsWatched += p.video?.durationSeconds || 0;
     });
 
@@ -76,14 +76,14 @@ export class DashboardService {
 
         const subjectVideoIds = new Set<string>();
 
-        subject.sections.forEach(sec => {
+        subject.sections.forEach((sec: any) => {
             totalVideos += sec.videos.length;
-            sec.videos.forEach(vid => {
+            sec.videos.forEach((vid: any) => {
                 subjectVideoIds.add(vid.id);
             });
         });
 
-        progressRecords.forEach(p => {
+        progressRecords.forEach((p: any) => {
             if (subjectVideoIds.has(p.videoId)) {
                 if (p.isCompleted) completedVideosInSubject++;
                 if (!lastWatchedAt || new Date(p.updatedAt) > new Date(lastWatchedAt)) {
@@ -116,13 +116,13 @@ export class DashboardService {
         });
     }
 
-    enrolledCourses.sort((a, b) => {
+    enrolledCourses.sort((a: any, b: any) => {
         if (!a.lastWatchedAt) return 1;
         if (!b.lastWatchedAt) return -1;
         return new Date(b.lastWatchedAt).getTime() - new Date(a.lastWatchedAt).getTime();
     });
 
-    const recentlyWatched = progressRecords.slice(0, 5).map(p => ({
+    const recentlyWatched = progressRecords.slice(0, 5).map((p: any) => ({
         videoId: p.videoId,
         videoTitle: p.video?.title,
         subjectId: p.video?.section?.subject?.id,
