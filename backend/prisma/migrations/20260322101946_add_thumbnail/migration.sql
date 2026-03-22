@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `subject` ADD COLUMN `thumbnailUrl` VARCHAR(191) NULL;
+ALTER TABLE `Subject` ADD COLUMN `thumbnailUrl` VARCHAR(191) NULL;

@@ -11,10 +11,20 @@ interface VideoPlayerProps {
     onCompleted: () => void;
 }
 
-const getYoutubeId = (url: string) => {
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-    return match ? match[1] : null;
-};
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
+    /(?:youtu\.be\/)([^&\n?#]+)/,
+    /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^([a-zA-Z0-9_-]{11})$/
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
 
 export default function VideoPlayer({
     videoId,
@@ -23,7 +33,7 @@ export default function VideoPlayer({
     onProgress,
     onCompleted
 }: VideoPlayerProps) {
-    const ytVideoId = getYoutubeId(youtubeUrl);
+    const ytVideoId = extractYouTubeId(youtubeUrl);
     const playerRef = useRef<any>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
