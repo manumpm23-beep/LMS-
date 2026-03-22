@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/store/sidebarStore';
 import AuthGuard from '@/components/Auth/AuthGuard';
 import SubjectSidebar from '@/components/Sidebar/SubjectSidebar';
@@ -13,11 +14,18 @@ export default function SubjectLayout({
   children: React.ReactNode;
   params: { subjectId: string };
 }) {
+  const pathname = usePathname();
   const { fetchTree, loading, error } = useSidebarStore();
+  
+  const isVideoPage = pathname.includes('/video/');
 
   useEffect(() => {
     fetchTree(params.subjectId);
   }, [params.subjectId, fetchTree]);
+
+  if (isVideoPage) {
+    return <AuthGuard><div className="bg-white min-h-[100dvh] flex flex-col">{children}</div></AuthGuard>;
+  }
 
   return (
     <AuthGuard>

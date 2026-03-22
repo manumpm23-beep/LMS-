@@ -9,6 +9,7 @@ interface VideoPlayerProps {
     startPositionSeconds: number;
     onProgress: (time: number) => void;
     onCompleted: () => void;
+    className?: string;
 }
 
 function extractYouTubeId(url: string): string | null {
@@ -31,7 +32,8 @@ export default function VideoPlayer({
     youtubeUrl,
     startPositionSeconds,
     onProgress,
-    onCompleted
+    onCompleted,
+    className
 }: VideoPlayerProps) {
     const ytVideoId = extractYouTubeId(youtubeUrl);
     const playerRef = useRef<any>(null);
@@ -92,7 +94,7 @@ export default function VideoPlayer({
     };
 
     return (
-        <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-md">
+        <div className={className || "relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-md"}>
             <YouTube
                 videoId={ytVideoId}
                 opts={opts}
