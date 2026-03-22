@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { useSidebarStore } from '@/store/sidebarStore';
+import { useAuthStore } from '@/store/authStore';
 import VideoPlayer from '@/components/Video/VideoPlayer';
 import VideoMeta from '@/components/Video/VideoMeta';
+import VideoComments from '@/components/Video/VideoComments';
 import { ChevronLeft, ChevronRight, CheckCircle2, Loader2, Lock } from 'lucide-react';
 
 interface VideoData {
@@ -30,6 +32,7 @@ export default function VideoLessonPage({ params }: { params: { subjectId: strin
   const { subjectId, videoId } = params;
   const router = useRouter();
   const markVideoCompleted = useSidebarStore(s => s.markVideoCompleted);
+  const { user } = useAuthStore();
 
   const [video, setVideo] = useState<VideoData | null>(null);
   const [progress, setProgress] = useState<{ lastPositionSeconds: number, isCompleted: boolean } | null>(null);
@@ -191,6 +194,9 @@ export default function VideoLessonPage({ params }: { params: { subjectId: strin
           </div>
         ) : <div />}
       </div>
+
+      {/* Q&A Comments Matrix */}
+      <VideoComments videoId={videoId} currentUser={user} />
     </div>
   );
 }
