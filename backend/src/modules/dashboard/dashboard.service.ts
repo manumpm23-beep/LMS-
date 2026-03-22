@@ -141,7 +141,8 @@ export class DashboardService {
             totalLessonsCompleted,
             totalHoursWatched: parseFloat((totalSecondsWatched / 3600).toFixed(2)),
             currentStreak,
-            longestStreak
+            longestStreak,
+            completedDates: uniqueCompletedDates
         },
         enrolledCourses,
         recentlyWatched
