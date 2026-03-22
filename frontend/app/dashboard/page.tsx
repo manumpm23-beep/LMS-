@@ -246,14 +246,14 @@ export default function DashboardPage() {
 
                         <div className="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
                            {course.isCompleted ? (
-                              <div className="flex items-center gap-2 text-emerald-600 font-bold bg-emerald-50 px-4 py-2 rounded-xl">
+                              <div className="flex items-center justify-center w-full gap-2 text-emerald-600 font-bold bg-emerald-50 px-4 py-3 rounded-xl border border-emerald-100/50">
                                 <CheckCircle className="w-5 h-5" />
                                 Completed!
                               </div>
                            ) : (
                               <Link 
-                                href={`/subjects/${course.slug}/video/${course.lastWatchedVideoId || ''}`}
-                                className="text-indigo-600 font-bold text-sm tracking-wide uppercase flex items-center gap-2 hover:gap-3 transition-all hover:text-indigo-800"
+                                href={course.lastWatchedVideoId ? `/subjects/${course.slug}/video/${course.lastWatchedVideoId}` : `/subjects/${course.slug}`}
+                                className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-sm uppercase flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all duration-300"
                               >
                                 {course.lastWatchedVideoId ? 'Resume Learning' : 'Start Course'} <ArrowRight className="w-4 h-4" />
                               </Link>
