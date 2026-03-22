@@ -19,6 +19,7 @@ model User {
   refreshTokens  RefreshToken[]
   comments       Comment[]
   commentUpvotes CommentUpvote[]
+  reviews        Review[]
 }
 
 model Subject {
@@ -36,6 +37,7 @@ model Subject {
   updatedAt   DateTime     @updatedAt
   sections    Section[]
   enrollments Enrollment[]
+  reviews     Review[]
 }
 
 model Section {
@@ -139,4 +141,20 @@ model CommentUpvote {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
+}
+
+model Review {
+  id        BigInt   @id @default(autoincrement())
+  subjectId String
+  userId    String
+  rating    Int
+  review    String?  @db.VarChar(1000)
+  isEdited  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, userId])
 }
