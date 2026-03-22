@@ -20,6 +20,8 @@ function timeAgo(dateParam: string | Date) {
   return `${diffInDays} days ago`;
 }
 
+import Header from '@/components/Layout/Header';
+
 export default function DashboardPage() {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -88,23 +90,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50 pb-24 font-sans tracking-tight text-gray-900">
       
       {/* Top Navbar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <Link href="/" className="font-extrabold text-2xl tracking-tighter text-indigo-600 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                <BookOpen className="w-5 h-5" />
-              </span>
-              LMS Platform
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition">
-                Browse Courses
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header theme="light" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
         

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/lib/apiClient';
-import { ArrowRight, UserCircle, Rocket, Sparkles, PlayCircle, Search, X } from 'lucide-react';
+import { ArrowRight, BookOpen, UserCircle, Rocket, Sparkles, PlayCircle, Search, X } from 'lucide-react';
+import Header from '@/components/Layout/Header';
 
 function HomePageContent() {
   const router = useRouter();
@@ -15,6 +16,7 @@ function HomePageContent() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const [enrolledCourseMaps, setEnrolledCourseMaps] = useState<Record<string, string | null>>({});
 
   const initialQ = searchParams.get('q') || '';
   const initialCategory = searchParams.get('category') || 'All';
@@ -52,9 +54,57 @@ function HomePageContent() {
           .finally(() => setLoading(false));
       }, 500);
 
+      apiClient.get('/api/dashboard')
+          .then(res => {
+              const map: Record<string, string | null> = {};
+              res.data.enrolledCourses.forEach((c: any) => {
+                  map[c.subjectId] = c.lastWatchedVideoId || 'enrolled_but_no_video_yet';
+              });
+              setEnrolledCourseMaps(map);
+          })
+          .catch(console.error);
+
+      return () => clearTimeout(delayDebounceFn);
+    } else {
+      setLoading(true);
+      const delayDebounceFn = setTimeout(() => {
+        let url = '/api/subjects?pageSize=12&page=1';
+        if (searchQuery.trim() !== '') url += `&q=${encodeURIComponent(searchQuery)}`;
+        if (selectedCategory !== 'All') url += `&category=${encodeURIComponent(selectedCategory)}`;
+        if (sortBy) url += `&sort=${encodeURIComponent(sortBy)}`;
+
+        apiClient.get(url)
+          .then(res => {
+            setSubjects(res.data.data || []);
+            setTotalCount(res.data.totalCount || 0);
+          })
+          .catch(console.error)
+          .finally(() => setLoading(false));
+      }, 500);
+
       return () => clearTimeout(delayDebounceFn);
     }
   }, [isAuthenticated, searchQuery, selectedCategory, sortBy]);
+
+  const handleEnrollOrStart = async (courseId: string, slug: string) => {
+      if (!isAuthenticated) return router.push('/auth/login');
+      
+      const enrolledValue = enrolledCourseMaps[courseId];
+      if (enrolledValue) {
+          if (enrolledValue === 'enrolled_but_no_video_yet') {
+              router.push(`/subjects/${slug}`);
+          } else {
+              router.push(`/subjects/${slug}/video/${enrolledValue}`);
+          }
+      } else {
+          try {
+              await apiClient.post(`/api/subjects/${courseId}/enroll`);
+              setEnrolledCourseMaps(prev => ({...prev, [courseId]: 'enrolled_but_no_video_yet'}));
+          } catch(e) {
+              console.error('Failed to enroll:', e);
+          }
+      }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -103,24 +153,7 @@ function HomePageContent() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-24 font-sans selection:bg-purple-500/30">
-      <nav className="bg-[#0f0f11]/80 border-b border-white/10 sticky top-0 z-50 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-                <Rocket className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-extrabold text-2xl tracking-tighter text-white">LMS Platform</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link href="/profile" className="flex items-center gap-2 text-slate-300 hover:text-white transition-all duration-300 font-bold text-sm bg-white/5 border border-white/10 hover:bg-white/10 px-6 py-3 rounded-full backdrop-blur-md">
-                <UserCircle className="w-5 h-5" />
-                My Profile
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header theme="dark" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 relative">
         <div className="absolute top-20 left-10 w-96 h-96 bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" />
@@ -244,9 +277,14 @@ function HomePageContent() {
                     <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed flex-1 font-medium">
                       {sub.description || 'A comprehensive structural overview natively diving strictly into the core architectural layouts of the syllabus.'}
                     </p>
-                    <div className="mt-8 flex items-center text-indigo-400 font-bold text-sm tracking-widest uppercase group-hover:gap-3 group-hover:text-pink-400 transition-all duration-300">
-                      START LEARNING
-                      <ArrowRight className="w-5 h-5 ml-1" />
+                    <div className="mt-8 flex justify-between items-center text-sm font-bold uppercase transition-all duration-300">
+                      <button 
+                        onClick={(e) => { e.preventDefault(); handleEnrollOrStart(sub.id, sub.slug); }}
+                        className={`flex items-center group-hover:gap-3 transition-all ${enrolledCourseMaps[sub.id] ? 'text-emerald-400 group-hover:text-emerald-300' : 'text-indigo-400 group-hover:text-pink-400'}`}
+                      >
+                         {enrolledCourseMaps[sub.id] ? 'Continue Learning' : 'Enroll Now'}
+                         <ArrowRight className="w-5 h-5 ml-1" />
+                      </button>
                     </div>
                   </div>
                 </Link>

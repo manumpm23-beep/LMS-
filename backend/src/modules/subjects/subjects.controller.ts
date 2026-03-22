@@ -245,3 +245,29 @@ export const getSubjectTree = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+export const enrollSubject = async (req: Request, res: Response) => {
+    try {
+        const { subjectId } = req.params;
+        const userId = req.user.id;
+
+        const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+        if (!subject) return res.status(404).json({ error: 'Subject not found' });
+
+        const existingEnrollment = await prisma.enrollment.findUnique({
+            where: { userId_subjectId: { userId, subjectId } }
+        });
+
+        if (existingEnrollment) {
+            return res.status(400).json({ error: 'Already enrolled' });
+        }
+
+        await prisma.enrollment.create({
+            data: { userId, subjectId }
+        });
+
+        res.status(201).json({ message: 'Successfully enrolled' });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
