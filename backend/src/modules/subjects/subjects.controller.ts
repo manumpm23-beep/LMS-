@@ -134,6 +134,9 @@ export const getSubjects = async (req: Request, res: Response) => {
                 _count: {
                     select: { enrollments: true }
                 },
+                reviews: {
+                    select: { rating: true }
+                },
                 sections: {
                     include: {
                         videos: {
@@ -157,6 +160,9 @@ export const getSubjects = async (req: Request, res: Response) => {
                 });
             }
 
+            const totalReviews = sub.reviews ? sub.reviews.length : 0;
+            const avgRating = totalReviews > 0 ? sub.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / totalReviews : 0;
+
             return {
                 id: sub.id,
                 title: sub.title,
@@ -168,6 +174,8 @@ export const getSubjects = async (req: Request, res: Response) => {
                 category: sub.category,
                 whatYouWillLearn: sub.whatYouWillLearn,
                 enrollmentCount: sub._count?.enrollments || 0,
+                averageRating: Math.round(avgRating * 10) / 10,
+                totalReviews,
                 totalVideos,
                 totalDuration,
                 createdAt: sub.createdAt
@@ -190,9 +198,31 @@ export const getSubjectById = async (req: Request, res: Response) => {
         const { subjectId } = req.params;
         const subject = await prisma.subject.findUnique({
             where: { id: subjectId, isPublished: true },
+            include: {
+                reviews: { select: { rating: true } }
+            }
         });
         if (!subject) return res.status(404).json({ error: 'Subject not found' });
-        res.json(subject);
+
+        const totalReviews = subject.reviews.length;
+        let sum = 0;
+        const ratingBreakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        subject.reviews.forEach((r: any) => {
+            sum += r.rating;
+            if (ratingBreakdown[r.rating as keyof typeof ratingBreakdown] !== undefined) {
+                ratingBreakdown[r.rating as keyof typeof ratingBreakdown]++;
+            }
+        });
+        const averageRating = totalReviews > 0 ? Math.round((sum / totalReviews) * 10) / 10 : 0;
+
+        const { reviews, ...subjectData } = subject;
+
+        res.json({
+            ...subjectData,
+            averageRating,
+            totalReviews,
+            ratingBreakdown
+        });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
     }

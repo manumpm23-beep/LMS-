@@ -10,6 +10,7 @@ import { progressRoutes } from './modules/progress/progress.routes';
 import { healthRoutes } from './modules/health/health.routes';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { videoCommentRoutes, commentRoutes } from './modules/comments/comment.routes';
+import { reviewRoutes } from './modules/reviews/review.routes';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/subjects/:subjectId/reviews', reviewRoutes);
 
 app.use(errorHandler);
 
