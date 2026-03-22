@@ -122,14 +122,18 @@ export default function HomePage() {
                   href={`/subjects/${sub.id}`}
                   className="group flex flex-col bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 hover:-translate-y-2 transition-all duration-500 overflow-hidden cursor-pointer shadow-lg hover:shadow-[0_0_40px_rgba(168,85,247,0.15)]"
                 >
-                  <div className="h-56 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex flex-col justify-end p-8 border-b border-white/5 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-500/20 to-transparent blur-2xl" />
+                  <div  
+                    className="h-56 bg-slate-900 bg-cover bg-center flex flex-col justify-end p-8 border-b border-white/5 relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500"
+                    style={{ backgroundImage: sub.thumbnailUrl ? `url(${sub.thumbnailUrl})` : '' }}
+                  >
+                    <div className="absolute inset-0 bg-black/50 group-hover:bg-black/20 transition-colors duration-500 z-0" />
+                    <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px] z-0" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-500/20 to-transparent blur-2xl z-0" />
 
-                    <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-white/20 transition-all duration-500 relative z-10">
-                      <PlayCircle className="w-7 h-7 text-indigo-400" />
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-indigo-500/50 transition-all duration-500 relative z-10 shadow-xl">
+                      <PlayCircle className="w-7 h-7 text-white" />
                     </div>
-                    <h2 className="text-2xl font-extrabold text-white group-hover:text-indigo-400 transition-colors line-clamp-1 relative z-10">{sub.title}</h2>
+                    <h2 className="text-2xl font-extrabold text-white group-hover:text-white drop-shadow-md transition-colors line-clamp-1 relative z-10">{sub.title}</h2>
                   </div>
                   <div className="p-8 flex flex-col flex-1 relative z-10">
                     <p className="text-slate-400 text-sm line-clamp-3 leading-relaxed flex-1 font-medium">

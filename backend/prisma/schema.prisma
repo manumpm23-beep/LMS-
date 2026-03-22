@@ -24,6 +24,7 @@ model Subject {
   title       String
   slug        String       @unique
   description String?      @db.Text
+  thumbnailUrl String?
   isPublished Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
