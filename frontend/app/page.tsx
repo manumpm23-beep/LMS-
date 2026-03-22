@@ -1,22 +1,38 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/lib/apiClient';
 import { ArrowRight, UserCircle, Rocket, Sparkles, PlayCircle, Search, X } from 'lucide-react';
 
-export default function HomePage() {
+function HomePageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated } = useAuthStore();
+  
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('newest');
+  const initialQ = searchParams.get('q') || '';
+  const initialCategory = searchParams.get('category') || 'All';
+  const initialSort = searchParams.get('sort') || 'newest';
+
+  const [searchQuery, setSearchQuery] = useState(initialQ);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [sortBy, setSortBy] = useState(initialSort);
 
   const categories = ['All', 'Frontend', 'Backend', 'Database', 'Fullstack', 'Computer Science', 'Tools', 'Design'];
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set('q', searchQuery);
+    if (selectedCategory !== 'All') params.set('category', selectedCategory);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    router.push(`/?${params.toString()}`, { scroll: false });
+  }, [searchQuery, selectedCategory, sortBy, router]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -185,7 +201,12 @@ export default function HomePage() {
               <h3 className="text-3xl font-extrabold text-white tracking-tight">No courses found</h3>
               <p className="text-slate-400 mt-4 font-medium text-lg max-w-md mx-auto">Try a different search term or category to discover your next learning adventure.</p>
               <button 
-                onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setSortBy('newest'); }}
+                onClick={() => { 
+                  setSearchQuery(''); 
+                  setSelectedCategory('All'); 
+                  setSortBy('newest'); 
+                  router.push('/', { scroll: false });
+                }}
                 className="mt-8 px-8 py-3.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-bold rounded-full border border-indigo-500/20 transition-all duration-300"
                >
                 Clear All Filters
@@ -235,5 +256,13 @@ export default function HomePage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a]" />}>
+      <HomePageContent />
+    </Suspense>
   );
 }
