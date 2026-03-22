@@ -3,6 +3,10 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.videoProgress.deleteMany({});
+  await prisma.video.deleteMany({ where: { orderIndex: 0 } });
+  await prisma.section.deleteMany({ where: { orderIndex: 0 } });
+
   const inputSubjects = [
     {
       title: "Python Programming",
