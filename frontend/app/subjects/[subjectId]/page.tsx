@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/apiClient';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, PlayCircle, Star, Tv, Award, MonitorPlay, ChevronDown, ChevronUp, Clock, Search, ThumbsUp, ThumbsDown, MoreVertical } from 'lucide-react';
 import { StarRating } from '@/components/common/StarRating';
 
 function timeAgo(dateInput: string | Date) {
@@ -30,25 +30,20 @@ export default function SubjectPage({ params }: { params: { subjectId: string } 
   const [subject, setSubject] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
-  const [myReview, setMyReview] = useState<any>(null);
-  const [isEnrolled, setIsEnrolled] = useState(false);
-  const [page, setPage] = useState(1);
-
-  const [reviewText, setReviewText] = useState('');
-  const [rating, setRating] = useState(0);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tree, setTree] = useState<any>(null);
+  
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [showAllSections, setShowAllSections] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     async function fetchData() {
       try {
-        const [dashRes, subRes, revRes, myRevRes] = await Promise.all([
-          apiClient.get('/api/dashboard').catch(() => null),
+        const [subRes, treeRes, revRes] = await Promise.all([
           apiClient.get(`/api/subjects/${params.subjectId}`).catch(() => null),
-          apiClient.get(`/api/subjects/${params.subjectId}/reviews`).catch(() => null),
-          apiClient.get(`/api/subjects/${params.subjectId}/my-review`).catch(() => null),
+          apiClient.get(`/api/subjects/${params.subjectId}/tree`).catch(() => null),
+          apiClient.get(`/api/subjects/${params.subjectId}/reviews`).catch(() => null)
         ]);
 
         if (!active) return;
@@ -57,9 +52,16 @@ export default function SubjectPage({ params }: { params: { subjectId: string } 
            setSubject(subRes.data);
         }
 
-        if (dashRes && dashRes.data) {
-           const enrolled = dashRes.data.enrolledCourses?.some((c: any) => c.subjectId === params.subjectId);
-           setIsEnrolled(enrolled || false);
+        if (treeRes && treeRes.data) {
+           setTree(treeRes.data);
+           // expand first 2
+           if (treeRes.data.sections) {
+              const expands: Record<string, boolean> = {};
+              treeRes.data.sections.forEach((sec: any, idx: number) => {
+                 if (idx < 2) expands[sec.id] = true;
+              });
+              setExpandedSections(expands);
+           }
         }
 
         if (revRes && revRes.data) {
@@ -69,12 +71,6 @@ export default function SubjectPage({ params }: { params: { subjectId: string } 
                totalReviews: revRes.data.totalReviews || 0,
                ratingBreakdown: revRes.data.ratingBreakdown || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
            });
-        }
-
-        if (myRevRes && myRevRes.data) {
-           setMyReview(myRevRes.data);
-           setRating(myRevRes.data.rating);
-           setReviewText(myRevRes.data.review || '');
         }
 
         setLoading(false);
@@ -87,243 +83,344 @@ export default function SubjectPage({ params }: { params: { subjectId: string } 
     return () => { active = false; };
   }, [params.subjectId]);
 
-  const handleSubmitReview = async () => {
-    if (rating === 0) return alert('Please select a rating');
-    setIsSubmitting(true);
-    try {
-       if (myReview) {
-          await apiClient.put(`/api/subjects/${params.subjectId}/reviews`, { rating, review: reviewText });
+  const toggleSection = (id: string) => {
+    setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const enrollUser = async () => {
+     try {
+       await apiClient.post(`/api/dashboard/enroll/${params.subjectId}`);
+       // Optionally fetch first video to navigate to it
+       let firstVideoId = null;
+       if (tree && tree.sections && tree.sections[0] && tree.sections[0].videos && tree.sections[0].videos[0]) {
+           firstVideoId = tree.sections[0].videos[0].id;
+       }
+       if (firstVideoId) {
+           router.push(`/subjects/${params.subjectId}/video/${firstVideoId}`);
        } else {
-          await apiClient.post(`/api/subjects/${params.subjectId}/reviews`, { rating, review: reviewText });
+           router.push(`/profile`);
        }
-       
-       const [revRes, myRevRes] = await Promise.all([
-          apiClient.get(`/api/subjects/${params.subjectId}/reviews`),
-          apiClient.get(`/api/subjects/${params.subjectId}/my-review`)
-       ]);
-
-       if (revRes.data) {
-         setReviews(revRes.data.reviews || []);
-         setSummary({
-             averageRating: revRes.data.averageRating || 0,
-             totalReviews: revRes.data.totalReviews || 0,
-             ratingBreakdown: revRes.data.ratingBreakdown || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-         });
-         setPage(1);
-       }
-       if (myRevRes.data) {
-         setMyReview(myRevRes.data);
-         setRating(myRevRes.data.rating);
-         setReviewText(myRevRes.data.review || '');
-         setIsEditing(false);
-       }
-    } catch (err: any) {
-       alert(err.response?.data?.error || 'Failed to submit review');
-    }
-    setIsSubmitting(false);
-  };
-
-  const handleDeleteReview = async () => {
-    if (!window.confirm('Are you sure you want to delete your review?')) return;
-    setIsSubmitting(true);
-    try {
-       await apiClient.delete(`/api/subjects/${params.subjectId}/reviews`);
-       const revRes = await apiClient.get(`/api/subjects/${params.subjectId}/reviews`);
-       if (revRes.data) {
-         setReviews(revRes.data.reviews || []);
-         setSummary({
-             averageRating: revRes.data.averageRating || 0,
-             totalReviews: revRes.data.totalReviews || 0,
-             ratingBreakdown: revRes.data.ratingBreakdown || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-         });
-         setPage(1);
-       }
-       setMyReview(null);
-       setRating(0);
-       setReviewText('');
-       setIsEditing(false);
-    } catch (err: any) {
-       alert('Failed to delete review');
-    }
-    setIsSubmitting(false);
-  };
-
-  const loadMore = async () => {
-    const p = page + 1;
-    try {
-      const res = await apiClient.get(`/api/subjects/${params.subjectId}/reviews?page=${p}`);
-      if (res.data) {
-        setReviews(prev => [...prev, ...(res.data.reviews || [])]);
-        setPage(p);
-      }
-    } catch (err) {}
+     } catch (e: any) {
+        alert(e.response?.data?.error || 'Failed to enroll');
+     }
   };
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+      <div className="flex h-screen items-center justify-center bg-white">
+        <Loader2 className="w-10 h-10 text-[#a435f0] animate-spin" />
       </div>
     );
   }
 
-  const total = summary?.totalReviews || 0;
+  const fontFam = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  const avgRating = summary?.averageRating || 0;
+  const totalReviews = summary?.totalReviews || 0;
 
+  // Calculate stats from tree
+  let totalLectures = 0;
+  if (tree && tree.sections) {
+      tree.sections.forEach((s: any) => {
+          totalLectures += s.videos?.length || 0;
+      });
+  }
+  const totalHours = Math.round((totalLectures * 15) / 60) || 12; // dummy hour calc
+
+  const userCountStr = "45,291";
+  
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-12 pb-32">
-       {/* Hero Section */}
-       <div className="border-b border-gray-200 pb-8">
-         <h1 className="text-4xl font-extrabold text-gray-900 mb-4">{subject?.title || 'Course Overview'}</h1>
-         <div className="flex items-center gap-4">
-           {total > 0 ? (
-             <>
-               <span className="text-3xl font-bold text-gray-900">{Number(summary?.averageRating || 0).toFixed(1)}</span>
-               <StarRating rating={summary?.averageRating || 0} size="md" interactive={false} />
-               <span className="text-lg text-gray-500 font-medium">({total} reviews)</span>
-             </>
-           ) : (
-             <span className="text-lg text-gray-500 font-medium">No reviews yet</span>
-           )}
-         </div>
-       </div>
+    <div className="bg-white min-h-screen text-[#1c1d1f]" style={{ fontFamily: fontFam }}>
+      
+      {/* TOP HERO SECTION */}
+      <div className="bg-[#1c1d1f] text-white pt-8 pb-12 relative">
+        <div className="max-w-[1180px] mx-auto px-6 lg:px-8 relative flex flex-col md:flex-row">
+          
+          {/* Left Side */}
+          <div className="w-full md:w-[65%] pr-0 md:pr-10 lg:pr-16 z-10 space-y-4">
+             <div className="text-sm text-[#c0c4fc] font-bold flex items-center gap-2 mb-2">
+                <a href="#" className="hover:text-white transition">Development</a>
+                <span>&gt;</span>
+                <a href="#" className="hover:text-white transition">Web Development</a>
+             </div>
+             
+             <h1 className="text-4xl md:text-[32px] lg:text-[40px] font-bold leading-tight mb-2">
+               {subject?.title || 'Course Title'}
+             </h1>
+             <p className="text-lg md:text-xl text-gray-100 font-normal mb-4 leading-relaxed">
+               {subject?.description || 'Build modern applications from scratch. Master the fundamentals and advanced topics required to become a top-tier developer in this comprehensive, project-based course.'}
+             </p>
+             
+             <div className="flex flex-wrap items-center gap-3 text-sm mb-2">
+                <div className="flex items-center gap-1 font-bold text-[#f69c08] text-[15px]">
+                  <span>{Number(avgRating).toFixed(1)}</span>
+                  <Star className="w-4 h-4 fill-current pt-px" />
+                </div>
+                <a href="#reviews" className="text-[#c0c4fc] underline hover:text-white transition">({totalReviews.toLocaleString()} ratings)</a>
+                <span className="text-gray-100">{userCountStr} students</span>
+             </div>
 
-       <h2 className="text-3xl font-bold text-gray-800">Ratings & Reviews</h2>
-       
-       <div className="flex flex-col md:flex-row gap-8 items-start bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-          <div className="flex flex-col items-center justify-center space-y-2 w-full md:w-1/3 py-4">
-             <div className="text-6xl font-extrabold text-gray-900">{Number(summary?.averageRating || 0).toFixed(1)}</div>
-             <StarRating rating={summary?.averageRating || 0} size="lg" interactive={false} />
-             <p className="text-gray-500 font-medium">Based on {total} review{total !== 1 && 's'}</p>
+             <div className="text-sm text-gray-100 mb-4">
+                Created by <a href="#instructor" className="text-[#c0c4fc] underline hover:text-white transition">{subject?.author?.name || 'Instructor'}</a>
+             </div>
+
+             <div className="flex items-center gap-4 text-sm text-gray-100">
+                <div className="flex items-center gap-1.5"><MonitorPlay className="w-4 h-4" /> Last updated 10/2025</div>
+                <div className="flex items-center gap-1.5"><Tv className="w-4 h-4" /> English</div>
+             </div>
           </div>
-          <div className="flex-1 w-full space-y-3 lg:pr-8 py-2">
-             {[5, 4, 3, 2, 1].map(stars => {
-                const count = summary?.ratingBreakdown?.[stars] || 0;
-                const percent = total > 0 ? Math.round((count / total) * 100) : 0;
-                return (
-                  <div key={stars} className="flex items-center gap-4 text-sm font-medium text-gray-600">
-                     <div className="flex items-center gap-1 w-10 shrink-0 justify-end">
-                       <span>{stars}</span>
-                       <span className="text-amber-400">★</span>
-                     </div>
-                     <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                       <div className="h-full bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
-                     </div>
-                     <div className="w-10 text-right shrink-0">{percent}%</div>
-                  </div>
-                );
-             })}
+
+          {/* Right Side Card (Desktop Sticky) */}
+          {/* Only shown absolutely positioned on md+ screens */}
+          <div className="hidden md:block absolute right-6 top-8 w-[340px] bg-white shadow-xl border border-gray-200 z-50">
+             <div className="relative cursor-pointer group bg-[#1c1d1f]">
+               <img src={subject?.thumbnailUrl || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800"} alt="Course Thumbnail" className="w-full h-[190px] object-cover opacity-90 group-hover:opacity-100 transition" />
+               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 group-hover:bg-black/20 transition-all">
+                  <PlayCircle className="w-16 h-16 text-white bg-black/50 rounded-full" />
+                  <span className="text-white font-bold mt-2 text-sm shadow-sm">Preview this course</span>
+               </div>
+             </div>
+
+             <div className="p-6">
+                <div className="text-3xl font-bold mb-4">{subject?.price ? `$${subject.price}` : 'Free'}</div>
+                <button 
+                  onClick={enrollUser}
+                  className="w-full bg-[#a435f0] text-white font-bold py-3.5 hover:bg-[#8710d8] transition-colors mb-2 text-[15px]"
+                >
+                  Enroll Now
+                </button>
+                <div className="text-xs text-center text-gray-500 mb-6">30-Day Money-Back Guarantee</div>
+
+                <div className="space-y-3 mb-6">
+                   <h4 className="font-bold text-[15px]">This course includes:</h4>
+                   <ul className="text-sm space-y-2.5 text-gray-600">
+                      <li className="flex items-center gap-3"><MonitorPlay className="w-4 h-4 text-gray-900" /> {totalHours} hours on-demand video</li>
+                      <li className="flex items-center gap-3"><Tv className="w-4 h-4 text-gray-900" /> Access on mobile and TV</li>
+                      <li className="flex items-center gap-3"><Award className="w-4 h-4 text-gray-900" /> Certificate of completion</li>
+                   </ul>
+                </div>
+
+                <div className="flex justify-between items-center text-sm font-bold border-t border-gray-200 pt-4 px-2">
+                   <button className="underline hover:text-gray-600 transition">Share</button>
+                   <button className="underline hover:text-gray-600 transition">Gift this course</button>
+                   <button className="hover:text-gray-600 transition">Apply Coupon</button>
+                </div>
+             </div>
           </div>
-       </div>
+        </div>
+      </div>
 
-       <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
-         {!isEnrolled ? (
-            <div className="text-center py-8">
-               <p className="text-xl">🎓</p>
-               <p className="text-gray-600 font-medium text-lg mt-2">Enroll in this course to leave a review</p>
-            </div>
-         ) : myReview && !isEditing ? (
-            <div>
-               <div className="flex justify-between items-start mb-4">
-                 <h2 className="text-xl font-bold text-gray-800">Your Review</h2>
-                 <div className="space-x-4">
-                   <button onClick={() => setIsEditing(true)} className="text-primary text-sm font-semibold hover:underline">Edit</button>
-                   <button onClick={handleDeleteReview} className="text-red-500 text-sm font-semibold hover:underline">Delete</button>
-                 </div>
+      {/* Main Content constraints */}
+      <div className="max-w-[1180px] mx-auto px-6 lg:px-8 py-8 md:py-10 relative flex flex-col md:flex-row">
+        
+        {/* Left column content area */}
+        <div className="w-full md:w-[65%] pr-0 md:pr-10 lg:pr-16 space-y-12 pb-24">
+           
+           {/* Mobile Card shown only on sm */}
+           <div className="block md:hidden border border-gray-200 shadow-sm mb-8 bg-white">
+             {/* Same card content minimized */}
+             <div className="relative">
+               <img src={subject?.thumbnailUrl || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600"} alt="Course Thumbnail" className="w-full h-auto max-h-48 object-cover" />
+               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+                  <PlayCircle className="w-16 h-16 text-white bg-black/50 rounded-full" />
                </div>
-               <div className="flex items-center gap-3 mb-3">
-                 <div className="flex items-center gap-2">
-                   <StarRating rating={myReview.rating} size="md" interactive={false} />
-                   <span className="font-bold text-gray-800">{myReview.rating}</span>
-                 </div>
-                 <span className="text-gray-400 text-sm">•</span>
-                 <span className="text-gray-500 text-sm">{timeAgo(myReview.createdAt)}</span>
-                 {myReview.isEdited && <span className="text-gray-400 text-sm">(edited)</span>}
-               </div>
-               {myReview.review && <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{myReview.review}</p>}
-            </div>
-         ) : (
-            <>
-               <h2 className="text-xl font-bold text-gray-800">{myReview ? 'Edit your review' : 'Rate this course'}</h2>
-               <div className="space-y-5 mt-2">
-                  <StarRating rating={rating} onRatingChange={setRating} size="lg" maxStars={5} interactive={true} />
-                  <div>
-                    <textarea 
-                       value={reviewText}
-                       onChange={e => setReviewText(e.target.value.substring(0, 1000))}
-                       placeholder="Share your experience (optional)"
-                       className="w-full text-base p-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y min-h-[120px]"
-                    />
-                    <div className="text-right text-xs text-gray-400 mt-1 font-medium">
-                       {reviewText.length}/1000
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button 
-                       onClick={handleSubmitReview}
-                       disabled={isSubmitting || rating === 0}
-                       className="px-6 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                    >
-                       {isSubmitting ? 'Saving...' : (myReview ? 'Update Review' : 'Submit Review')}
-                    </button>
-                    {myReview && (
-                      <button onClick={() => { setIsEditing(false); setRating(myReview.rating); setReviewText(myReview.review || ''); }} className="px-4 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors">
-                         Cancel
-                      </button>
-                    )}
-                  </div>
-               </div>
-            </>
-         )}
-       </div>
+             </div>
+             <div className="p-6">
+                <div className="text-3xl font-bold mb-4">{subject?.price ? `$${subject.price}` : 'Free'}</div>
+                <button onClick={enrollUser} className="w-full bg-[#a435f0] text-white font-bold py-3.5 hover:bg-[#8710d8] transition-colors mb-4 text-[15px]">
+                  Enroll Now
+                </button>
+                <ul className="text-sm space-y-2 text-gray-600">
+                  <li className="flex items-center gap-3"><MonitorPlay className="w-4 h-4 text-gray-900" /> {totalHours} hours on-demand video</li>
+                  <li className="flex items-center gap-3"><Award className="w-4 h-4 text-gray-900" /> Certificate of completion</li>
+                </ul>
+             </div>
+           </div>
 
-       <div className="space-y-6">
-         <h2 className="text-2xl font-bold text-gray-800">Reviews</h2>
-         {reviews.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-xl border border-gray-100 shadow-sm border-dashed">
-               <div className="text-5xl mb-4">⭐</div>
-               <p className="text-gray-800 font-bold text-xl">No reviews yet</p>
-               <p className="text-gray-500 mt-1">Be the first to review this course!</p>
-            </div>
-         ) : (
-            <div className="space-y-4">
-               {reviews.map(r => (
-                  <div key={r.id} className="p-6 bg-white rounded-xl border border-gray-100 shadow-sm space-y-4 transition-all">
-                     <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                           <img src={r.user?.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${r.user?.name}`} alt="" className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50" />
-                           <div>
-                              <p className="font-bold text-gray-900 leading-tight">{r.user?.name}</p>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                 <StarRating rating={r.rating} size="sm" interactive={false} />
-                                 <span className="font-semibold text-gray-700">{r.rating}</span>
-                                 <span>•</span>
-                                 <span>{timeAgo(r.createdAt)}</span>
-                                 {r.isEdited && <span className="text-gray-400">(edited)</span>}
+           {/* WHAT YOU'LL LEARN */}
+           <div className="border border-gray-300 p-6">
+              <h2 className="text-2xl font-bold mb-4">What you'll learn</h2>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-[#1c1d1f]">
+                 {[
+                   "Build fullstack web applications from scratch",
+                   "Master complex state management and modern APIs",
+                   "Implement secure authentication & authorization",
+                   "Deploy your projects to production effortlessly",
+                   "Learn industry best practices and design patterns",
+                   "Build a professional portfolio of real-world apps"
+                 ].map((pt, i) => (
+                   <li key={i} className="flex gap-4">
+                     <Check className="w-4 h-4 shrink-0 mt-[2px]" />
+                     <span>{pt}</span>
+                   </li>
+                 ))}
+              </ul>
+           </div>
+
+           {/* COURSE CONTENT */}
+           <div className="mt-8">
+              <h2 className="text-2xl font-bold mb-6">Course content</h2>
+              <div className="flex flex-wrap items-center justify-between text-sm mb-2">
+                 <span>{tree?.sections?.length || 0} sections • {totalLectures} lectures • {totalHours}h 30m total length</span>
+                 <button 
+                   onClick={() => {
+                      const mode = !showAllSections;
+                      setShowAllSections(mode);
+                      if (tree?.sections) {
+                         const nExpanded: Record<string, boolean> = {};
+                         tree.sections.forEach((s: any) => nExpanded[s.id] = mode);
+                         setExpandedSections(nExpanded);
+                      }
+                   }} 
+                   className="text-[#5624d0] font-bold hover:text-[#401b9c]"
+                 >
+                   {showAllSections ? "Collapse all sections" : "Expand all sections"}
+                 </button>
+              </div>
+
+              <div className="border border-[#d1d7dc] border-b-0">
+                 {tree?.sections?.map((section: any, idx: number) => {
+                    const expanded = !!expandedSections[section.id];
+                    return (
+                       <div key={section.id} className="border-b border-[#d1d7dc]">
+                          <button 
+                            onClick={() => toggleSection(section.id)}
+                            className="w-full flex items-center justify-between p-4 bg-[#f7f9fa] hover:bg-[#f3f4f6] transition-colors"
+                          >
+                             <div className="flex items-center gap-4 text-left">
+                                {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                <span className="font-bold text-[15px]">{section.title}</span>
+                             </div>
+                             <div className="text-sm text-gray-500 whitespace-nowrap">
+                                {section.videos?.length || 0} lectures
+                             </div>
+                          </button>
+                          
+                          {expanded && (
+                             <div className="bg-white">
+                                {section.videos?.map((v: any) => (
+                                   <div key={v.id} className="p-4 pl-12 flex justify-between group hover:bg-gray-50 border-t border-gray-100 first:border-t-0">
+                                      <div className="flex gap-4 items-start text-sm">
+                                         <PlayCircle className="w-4 h-4 mt-[2px] text-gray-400 group-hover:text-[#5624d0]" />
+                                         <a href="#" className="text-[#5624d0] underline hover:text-[#401b9c] line-clamp-2 md:line-clamp-1">
+                                            {v.title}
+                                         </a>
+                                      </div>
+                                      <span className="text-sm text-gray-500 whitespace-nowrap ml-4">15:00</span>
+                                   </div>
+                                ))}
+                             </div>
+                          )}
+                       </div>
+                    );
+                 })}
+                 {(!tree || !tree.sections || tree.sections.length === 0) && (
+                   <div className="p-4 text-center border-b border-[#d1d7dc] text-gray-500">Curriculum contents will appear here.</div>
+                 )}
+              </div>
+           </div>
+
+           {/* REQUIREMENTS */}
+           <div>
+              <h2 className="text-2xl font-bold mb-4">Requirements</h2>
+              <ul className="list-disc list-inside text-sm space-y-2 text-gray-800 ml-1">
+                 <li>No prior programming experience needed. We start from the very basics.</li>
+                 <li>A modern web browser (Google Chrome recommended).</li>
+                 <li>A desire to learn and practice regularly!</li>
+              </ul>
+           </div>
+
+           {/* INSTRUCTOR SECTION */}
+           <div id="instructor">
+              <h2 className="text-2xl font-bold mb-6">Instructor</h2>
+              <div className="mb-4">
+                 <h3 className="text-xl font-bold text-[#5624d0] hover:text-[#401b9c] cursor-pointer underline underline-offset-2 mb-1">
+                   {subject?.author?.name || 'Jane Doe'}
+                 </h3>
+                 <p className="text-gray-500 text-[15px]">{subject?.author?.role || 'Senior Software Engineer & Lead Instructor'}</p>
+              </div>
+
+              <div className="flex items-center gap-4 mb-4">
+                 <img src={subject?.author?.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=${subject?.author?.name || 'Jane'}`} alt="Instructor Avatar" className="w-[80px] h-[80px] rounded-full object-cover shadow-sm bg-gray-100" />
+                 <ul className="text-sm space-y-1.5 text-[#1c1d1f]">
+                    <li className="flex items-center gap-3"><Star className="w-4 h-4 fill-current text-[#b4690e] shrink-0" /> 4.7 Instructor Rating</li>
+                    <li className="flex items-center gap-3"><Award className="w-4 h-4 shrink-0" /> 154,291 Reviews</li>
+                    <li className="flex items-center gap-3"><MonitorPlay className="w-4 h-4 shrink-0" /> 458,901 Students</li>
+                    <li className="flex items-center gap-3"><Tv className="w-4 h-4 shrink-0" /> 16 Courses</li>
+                 </ul>
+              </div>
+
+              <div className="text-sm text-gray-800 leading-relaxed mb-4">
+                 Hello! I'm a passionate developer and educator with over a decade of industry experience. I've worked on high-scale systems at top tech companies and I love breaking down complex topics into simple, digestible concepts. My goal is to make learning to code a great experience for everyone.
+              </div>
+           </div>
+
+           {/* STUDENT FEEDBACK SECTION */}
+           <div id="reviews" className="animate-in fade-in">
+                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <Star className="w-6 h-6 fill-current text-[#b4690e]" />
+                    {Number(avgRating).toFixed(1)} course rating • {totalReviews.toLocaleString()} ratings
+                 </h2>
+                 
+                 <div className="flex flex-col gap-6 justify-center max-w-lg mb-10">
+                    {[5, 4, 3, 2, 1].map(stars => {
+                       const count = summary?.ratingBreakdown?.[stars] || 0;
+                       const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
+                       
+                       return (
+                         <div key={stars} className="flex items-center gap-4 text-[15px]">
+                            <div className="flex gap-1 w-20 shrink-0 text-[#b4690e] justify-start pt-1">
+                               <span className="underline cursor-pointer">{stars} stars</span>
+                            </div>
+                            <div className="w-full bg-[#d1d7dc] h-2 relative border border-transparent">
+                               <div className="absolute top-0 left-0 h-full bg-[#6a6f73]" style={{ width: `${pct}%` }}></div>
+                            </div>
+                            <div className="w-12 shrink-0 text-[#b4690e] underline cursor-pointer">{pct}%</div>
+                         </div>
+                       )
+                    })}
+                 </div>
+
+                 <div className="space-y-6">
+                    {reviews.slice(0, 4).map(r => (
+                      <div key={r.id} className="border-t border-[#d1d7dc] pt-6">
+                         <div className="flex items-start gap-4 mb-3">
+                           <div className={`w-12 h-12 text-white bg-black rounded-full flex items-center justify-center font-bold text-lg shrink-0`}>
+                             {r.user?.name ? r.user.name.substring(0, 2).toUpperCase() : 'U'}
+                           </div>
+                           <div className="flex-1">
+                              <p className="font-bold text-[15px] mb-1">{r.user?.name}</p>
+                              <div className="flex items-center gap-2">
+                                 <div className="flex text-[#b4690e]">
+                                    {[1,2,3,4,5].map(x=><Star key={x} className={`w-3.5 h-3.5 ${x <= r.rating ? 'fill-current' : 'opacity-30'}`} />)}
+                                 </div>
+                                 <span className="text-gray-500 text-xs font-bold">{timeAgo(r.createdAt)}</span>
                               </div>
                            </div>
-                        </div>
-                        {myReview?.id === r.id && (
-                           <div className="flex gap-3 text-sm font-semibold">
-                              <button onClick={() => { setIsEditing(true); window.scrollTo({top: 250, behavior: 'smooth'}); }} className="text-primary hover:text-primary/80 transition-colors">Edit</button>
-                              <button onClick={handleDeleteReview} disabled={isSubmitting} className="text-red-500 hover:text-red-700 transition-colors">Delete</button>
-                           </div>
-                        )}
-                     </div>
-                     {r.review && (
-                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{r.review}</p>
-                     )}
-                  </div>
-               ))}
-               {total > reviews.length && (
-                  <div className="text-center pt-6">
-                     <button onClick={loadMore} className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all">
-                        Load more reviews
-                     </button>
-                  </div>
-               )}
-            </div>
-         )}
-       </div>
+                           <MoreVertical className="w-5 h-5 text-gray-400 cursor-pointer" />
+                         </div>
+                         <p className="text-[15px] text-[#1c1d1f] mb-4">
+                            {r.review || "Amazing course, really helped me learn the concepts properly!"}
+                         </p>
+                         <div className="flex items-center gap-4 text-xs">
+                             <span className="text-gray-500">Was this review helpful?</span>
+                             <button className="p-2 border border-[#1c1d1f] rounded-full hover:bg-gray-100 flex items-center justify-center w-9 h-9">
+                               <ThumbsUp className="w-4 h-4" />
+                             </button>
+                             <button className="p-2 border border-[#1c1d1f] rounded-full hover:bg-gray-100 flex items-center justify-center w-9 h-9">
+                               <ThumbsDown className="w-4 h-4" />
+                             </button>
+                             <a href="#" className="text-gray-500 underline ml-2">Report</a>
+                          </div>
+                      </div>
+                    ))}
+                    {reviews.length === 0 && (
+                      <div className="text-gray-500 py-4">No reviews yet for this course.</div>
+                    )}
+                 </div>
+           </div>
+
+        </div>
+      </div>
     </div>
   );
 }
