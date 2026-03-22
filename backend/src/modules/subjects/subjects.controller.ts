@@ -100,30 +100,85 @@ export const seedDatabase = async (req: Request, res: Response) => {
 export const getSubjects = async (req: Request, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1;
-        const pageSize = parseInt(req.query.pageSize as string) || 10;
+        const pageSize = parseInt(req.query.limit as string) || 10;
         const q = req.query.q as string || '';
+        const category = req.query.category as string || '';
+        const sort = req.query.sort as string || 'newest';
 
-        const where = {
-            isPublished: true,
-            ...(q ? {
-                OR: [
-                    { title: { contains: q } },
-                    { description: { contains: q } }
-                ]
-            } : {})
-        };
+        const where: any = { isPublished: true };
+        
+        if (q) {
+            where.OR = [
+                { title: { contains: q } },
+                { description: { contains: q } }
+            ];
+        }
+        
+        if (category) {
+            where.category = category;
+        }
 
-        const total = await prisma.subject.count({ where });
+        const totalCount = await prisma.subject.count({ where });
+
+        let orderByClause: any = { createdAt: 'desc' };
+        if (sort === 'popular') {
+            orderByClause = { enrollments: { _count: 'desc' } };
+        }
+
         const subjects = await prisma.subject.findMany({
             where,
             skip: (page - 1) * pageSize,
             take: pageSize,
-            orderBy: { createdAt: 'desc' },
+            orderBy: orderByClause,
+            include: {
+                _count: {
+                    select: { enrollments: true }
+                },
+                sections: {
+                    include: {
+                        videos: {
+                            select: { id: true, durationSeconds: true }
+                        }
+                    }
+                }
+            }
+        });
+
+        const mappedSubjects = subjects.map((sub: any) => {
+            let totalDuration = 0;
+            let totalVideos = 0;
+
+            if (sub.sections) {
+                sub.sections.forEach((sec: any) => {
+                    totalVideos += sec.videos.length;
+                    sec.videos.forEach((vid: any) => {
+                        totalDuration += (vid.durationSeconds || 0);
+                    });
+                });
+            }
+
+            return {
+                id: sub.id,
+                title: sub.title,
+                slug: sub.slug,
+                description: sub.description,
+                thumbnailUrl: sub.thumbnailUrl,
+                instructorName: sub.instructorName,
+                instructorPhoto: sub.instructorPhoto,
+                category: sub.category,
+                whatYouWillLearn: sub.whatYouWillLearn,
+                enrollmentCount: sub._count?.enrollments || 0,
+                totalVideos,
+                totalDuration,
+                createdAt: sub.createdAt
+            };
         });
 
         res.json({
-            data: subjects,
-            meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) }
+            data: mappedSubjects,
+            totalCount,
+            currentPage: page,
+            totalPages: Math.ceil(totalCount / pageSize)
         });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
