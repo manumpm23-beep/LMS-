@@ -42,7 +42,7 @@ export default function Header({ theme = 'dark' }: HeaderProps) {
                         <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
                             <Rocket className="w-5 h-5 text-white" />
                         </div>
-                        <span className="font-extrabold text-2xl tracking-tighter">LMS Platform</span>
+                        <span className="font-extrabold text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">Learning Platform</span>
                     </Link>
 
                     <div className="flex items-center gap-6">
