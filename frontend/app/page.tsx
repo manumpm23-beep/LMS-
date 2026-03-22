@@ -4,27 +4,45 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/lib/apiClient';
-import { BookOpen, ArrowRight, UserCircle, Rocket, Sparkles, PlayCircle } from 'lucide-react';
+import { ArrowRight, UserCircle, Rocket, Sparkles, PlayCircle, Search, X } from 'lucide-react';
 
 export default function HomePage() {
   const { isAuthenticated } = useAuthStore();
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
+
+  const categories = ['All', 'Frontend', 'Backend', 'Database', 'Fullstack', 'Computer Science', 'Tools', 'Design'];
 
   useEffect(() => {
     if (isAuthenticated) {
       setLoading(true);
-      apiClient.get('/api/subjects?pageSize=100')
-        .then(res => setSubjects(res.data.data || []))
-        .catch(console.error)
-        .finally(() => setLoading(false));
+      const delayDebounceFn = setTimeout(() => {
+        let url = '/api/subjects?pageSize=12&page=1';
+        if (searchQuery.trim() !== '') url += `&q=${encodeURIComponent(searchQuery)}`;
+        if (selectedCategory !== 'All') url += `&category=${encodeURIComponent(selectedCategory)}`;
+        if (sortBy) url += `&sort=${encodeURIComponent(sortBy)}`;
+
+        apiClient.get(url)
+          .then(res => {
+            setSubjects(res.data.data || []);
+            setTotalCount(res.data.totalCount || 0);
+          })
+          .catch(console.error)
+          .finally(() => setLoading(false));
+      }, 500);
+
+      return () => clearTimeout(delayDebounceFn);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, searchQuery, selectedCategory, sortBy]);
 
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden font-sans tracking-tight selection:bg-purple-500/30">
-        {/* Dynamic Background Glows */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-[500px] bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none" />
 
@@ -69,7 +87,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-24 font-sans selection:bg-purple-500/30">
-      {/* Top Navbar */}
       <nav className="bg-[#0f0f11]/80 border-b border-white/10 sticky top-0 z-50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
@@ -89,30 +106,90 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Main Catalog View */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 relative">
         <div className="absolute top-20 left-10 w-96 h-96 bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-pink-600/10 blur-[100px] rounded-full pointer-events-none" />
 
-        <div className="flex items-center justify-between mb-12 relative z-10">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tighter">Course Catalog</h1>
-            <p className="text-slate-400 mt-3 text-lg font-medium">Explore and seamlessly enroll in our available subjects.</p>
-          </div>
+        <div className="relative z-10 space-y-8 mb-12">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                  <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tighter">Course Catalog</h1>
+                  <p className="text-slate-400 mt-3 text-lg font-medium">Explore and seamlessly enroll in our available subjects.</p>
+                </div>
+                
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <label className="text-slate-400 font-medium text-sm">Sort by:</label>
+                  <select 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2.5 outline-none focus:border-indigo-500 transition-colors font-medium cursor-pointer"
+                  >
+                    <option value="newest" className="bg-gray-900">Newest</option>
+                    <option value="popular" className="bg-gray-900">Most Popular</option>
+                  </select>
+                </div>
+            </div>
+
+            <div className="relative w-full shadow-lg">
+               <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                 <Search className="h-5 w-5 text-gray-400" />
+               </div>
+               <input 
+                 type="text" 
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 className="w-full bg-white/5 border border-white/10 text-white rounded-[2rem] py-4 pl-14 pr-14 focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition-all font-medium placeholder-gray-500 backdrop-blur-md"
+                 placeholder="Search courses..."
+               />
+               {searchQuery && (
+                 <button 
+                   onClick={() => setSearchQuery('')}
+                   className="absolute inset-y-0 right-0 pr-5 flex items-center text-gray-400 hover:text-white transition-colors"
+                 >
+                   <X className="h-5 w-5" />
+                 </button>
+               )}
+            </div>
+
+            <div className="flex flex-wrap gap-2.5">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 ${
+                    selectedCategory === cat 
+                      ? 'bg-gray-900 text-white shadow-xl shadow-black/50 border border-gray-700/50' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            
+            <div className="text-slate-400 font-medium text-sm pt-4 border-t border-white/5">
+              {loading ? 'Searching courses...' : `Showing ${totalCount} courses`}
+            </div>
         </div>
 
         <div className="relative z-10">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-80 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl animate-pulse" />
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="h-[420px] bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl animate-pulse" />
               ))}
             </div>
           ) : subjects.length === 0 ? (
-            <div className="text-center py-32 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl">
-              <BookOpen className="w-20 h-20 text-slate-600 mx-auto mb-6" />
-              <h3 className="text-2xl font-extrabold text-white">No Subjects Available</h3>
-              <p className="text-slate-400 mt-3 font-medium text-lg">Check back later when physical content is seamlessly published!</p>
+            <div className="text-center py-24 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl shadow-2xl">
+              <Search className="w-24 h-24 text-slate-700 mx-auto mb-6" />
+              <h3 className="text-3xl font-extrabold text-white tracking-tight">No courses found</h3>
+              <p className="text-slate-400 mt-4 font-medium text-lg max-w-md mx-auto">Try a different search term or category to discover your next learning adventure.</p>
+              <button 
+                onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setSortBy('newest'); }}
+                className="mt-8 px-8 py-3.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-bold rounded-full border border-indigo-500/20 transition-all duration-300"
+               >
+                Clear All Filters
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -120,10 +197,10 @@ export default function HomePage() {
                 <Link
                   key={sub.id}
                   href={`/subjects/${sub.id}`}
-                  className="group flex flex-col bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 hover:-translate-y-2 transition-all duration-500 overflow-hidden cursor-pointer shadow-lg hover:shadow-[0_0_40px_rgba(168,85,247,0.15)]"
+                  className="group flex flex-col bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl hover:bg-white/10 hover:border-white/20 hover:-translate-y-2 transition-all duration-500 overflow-hidden cursor-pointer shadow-lg hover:shadow-[0_0_40px_rgba(168,85,247,0.15)] h-full"
                 >
                   <div  
-                    className="h-56 bg-slate-900 bg-cover bg-center flex flex-col justify-end p-8 border-b border-white/5 relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500"
+                    className="h-56 shrink-0 bg-slate-900 bg-cover bg-center flex flex-col justify-end p-8 border-b border-white/5 relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500"
                     style={{ backgroundImage: sub.thumbnailUrl ? `url(${sub.thumbnailUrl})` : '' }}
                   >
                     <div className="absolute inset-0 bg-black/50 group-hover:bg-black/20 transition-colors duration-500 z-0" />
@@ -133,10 +210,17 @@ export default function HomePage() {
                     <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-indigo-500/50 transition-all duration-500 relative z-10 shadow-xl">
                       <PlayCircle className="w-7 h-7 text-white" />
                     </div>
-                    <h2 className="text-2xl font-extrabold text-white group-hover:text-white drop-shadow-md transition-colors line-clamp-1 relative z-10">{sub.title}</h2>
                   </div>
                   <div className="p-8 flex flex-col flex-1 relative z-10">
-                    <p className="text-slate-400 text-sm line-clamp-3 leading-relaxed flex-1 font-medium">
+                    <div className="flex justify-between items-start mb-3">
+                       <h2 className="text-2xl font-extrabold text-white group-hover:text-indigo-400 transition-colors line-clamp-1">{sub.title}</h2>
+                    </div>
+                    {sub.category && (
+                      <span className="inline-block px-3 py-1 bg-white/10 text-slate-300 text-xs font-bold rounded-lg mb-4 w-fit border border-white/5">
+                        {sub.category}
+                      </span>
+                    )}
+                    <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed flex-1 font-medium">
                       {sub.description || 'A comprehensive structural overview natively diving strictly into the core architectural layouts of the syllabus.'}
                     </p>
                     <div className="mt-8 flex items-center text-indigo-400 font-bold text-sm tracking-widest uppercase group-hover:gap-3 group-hover:text-pink-400 transition-all duration-300">
